@@ -1,41 +1,30 @@
 import "react-calendar/dist/Calendar.css";
 import React, { useState } from "react";
-import MonthCalendar from "../components/MonthCalendar";
+import Calendar from "react-calendar";
 import { useEvents } from "../context/EventContext";
 import BackButton from "../components/BackButton";
 
 const SchedulePage = () => {
-  const { getEventsByDate } = useEvents();
+  const { getEventsByDate, dateKey } = useEvents();
   const [selectedDate, setSelectedDate] = useState(null);
-
-  // 日付クリックでモーダルを開く
-  const handleDateClick = (dateKey) => {
-    setSelectedDate(dateKey);
-  };
 
   return (
     <div className="min-h-screen p-6 flex flex-col items-center">
       <div className="w-full max-w-4xl">
-        <h1 className="text-2xl font-bold text-center mb-4">
-          📅 スケジュール管理
-        </h1>
+        <h1 className="text-2xl font-bold text-center mb-4">📅 スケジュール管理</h1>
 
-        {/* カレンダー部分 */}
-        <div className="bg-transparent p-2 flex justify-center">
-          <div className="w-full">
-            <MonthCalendar onDateClick={handleDateClick} small={false} />
-          </div>
+        {/* react-calendar を直接表示 */}
+        <div className="bg-white rounded-lg shadow p-4">
+          <Calendar onClickDay={(value) => setSelectedDate(dateKey(value))} />
         </div>
       </div>
 
-      {/* モーダル部分 */}
+      {/* モーダル */}
       {selectedDate && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-40">
           <div className="bg-white rounded-xl p-4 w-full max-w-lg">
             <div className="flex justify-between items-center mb-2">
-              <h2 className="text-lg font-semibold">
-                📅 {selectedDate} の予定
-              </h2>
+              <h2 className="text-lg font-semibold">📅 {selectedDate} の予定</h2>
               <button
                 onClick={() => setSelectedDate(null)}
                 className="px-2 py-1 rounded bg-gray-200"
@@ -50,7 +39,6 @@ const SchedulePage = () => {
               ) : (
                 getEventsByDate(selectedDate).map((ev) => (
                   <div key={ev.id} className="border rounded p-3 bg-gray-50">
-                    {/* タイトル行 */}
                     <div className="flex items-center justify-between">
                       <div className="flex gap-2 items-center">
                         <div className="text-xl">
@@ -62,27 +50,15 @@ const SchedulePage = () => {
                             ? "🎵"
                             : "📌"}
                         </div>
-                        <div className="font-bold">
-                          {ev.title || "(タイトルなし)"}
-                        </div>
+                        <div className="font-bold">{ev.title || "(タイトルなし)"}</div>
                       </div>
                       <div className="text-sm text-gray-600">
                         {ev.startTime
-                          ? `${ev.startTime}${
-                              ev.endTime ? " - " + ev.endTime : ""
-                            }`
+                          ? `${ev.startTime}${ev.endTime ? " - " + ev.endTime : ""}`
                           : ""}
                       </div>
                     </div>
-
-                    {/* メモ */}
-                    {ev.memo && (
-                      <div className="mt-2 text-sm text-gray-700">
-                        {ev.memo}
-                      </div>
-                    )}
-
-                    {/* 画像 (配信・アルバム) */}
+                    {ev.memo && <div className="mt-2 text-sm text-gray-700">{ev.memo}</div>}
                     {ev.images && ev.images.length > 0 && (
                       <div className="flex gap-2 mt-2 flex-wrap">
                         {ev.images.map((src, i) => (
@@ -95,8 +71,6 @@ const SchedulePage = () => {
                         ))}
                       </div>
                     )}
-
-                    {/* サムネイル (楽曲) */}
                     {ev.thumbnail && (
                       <div className="mt-2">
                         <img
@@ -106,8 +80,6 @@ const SchedulePage = () => {
                         />
                       </div>
                     )}
-
-                    {/* URL (楽曲リンク) */}
                     {ev.url && (
                       <div className="mt-2">
                         <a
