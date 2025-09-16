@@ -4,12 +4,10 @@ import { useAppSettings } from "../context/AppContext";
 export default function SettingPage() {
   const { bgColor, bgImage, bgm, saveSettings } = useAppSettings();
 
-  // 一時的な選択値
   const [tempBgColor, setTempBgColor] = useState(bgColor);
   const [tempBgImage, setTempBgImage] = useState(bgImage);
   const [tempBgm, setTempBgm] = useState(bgm);
 
-  // Context が変わったら一時値も更新（保存直後に反映させるため）
   useEffect(() => {
     setTempBgColor(bgColor);
     setTempBgImage(bgImage);
@@ -21,22 +19,28 @@ export default function SettingPage() {
     setTempBgColor(color);
   };
 
-  // 背景画像アップロード
+  // 背景画像アップロード（base64）
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setTempBgImage(url);
-    }
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setTempBgImage(event.target.result); // ← base64
+    };
+    reader.readAsDataURL(file);
   };
 
-  // BGM アップロード
+  // BGM アップロード（base64）
   const handleBgmUpload = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setTempBgm(url);
-    }
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setTempBgm(event.target.result); // ← base64
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -77,12 +81,12 @@ export default function SettingPage() {
           </button>
           <button
             onClick={() => {
-              const defaultColor = "#FEF3C7"; // ← CSS色コードで指定
+              const defaultColor = "#FEF3C7";
               saveSettings({ bgColor: defaultColor });
-              setTempBgColor(defaultColor); // ← 一時状態も更新
+              setTempBgColor(defaultColor);
             }}
             className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded"
-           >
+          >
             色をリセット
           </button>
         </div>
@@ -92,18 +96,30 @@ export default function SettingPage() {
       <div className="mb-6 p-4 border rounded-lg bg-white/70">
         <h2 className="text-lg font-semibold mb-2">背景画像を設定</h2>
         <input type="file" accept="image/*" onChange={handleImageUpload} />
+        {tempBgImage && (
+          <div className="mt-3 relative">
+            <img
+              src={tempBgImage}
+              alt="背景プレビュー"
+              className="w-32 h-20 object-cover rounded"
+            />
+            <button
+              onClick={() => {
+                setTempBgImage(null);
+                saveSettings({ bgImage: null });
+              }}
+              className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full p-1"
+            >
+              ✕
+            </button>
+          </div>
+        )}
         <div className="flex gap-3 mt-3">
           <button
             onClick={() => saveSettings({ bgImage: tempBgImage })}
             className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white rounded"
           >
             画像を保存
-          </button>
-          <button
-            onClick={() => saveSettings({ bgImage: null })}
-            className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded"
-          >
-            画像をリセット
           </button>
         </div>
       </div>
@@ -112,9 +128,7 @@ export default function SettingPage() {
       <div className="mb-6 p-4 border rounded-lg bg-white/70">
         <h2 className="text-lg font-semibold mb-2">BGM を設定</h2>
         <input type="file" accept="audio/*" onChange={handleBgmUpload} />
-        {tempBgm && (
-          <p className="mt-2 text-sm text-gray-600">🎵 BGM が選択されています</p>
-        )}
+        {tempBgm && <p className="mt-2 text-sm text-gray-600">🎵 BGM が選択されています</p>}
         <div className="flex gap-3 mt-3">
           <button
             onClick={() => saveSettings({ bgm: tempBgm })}
@@ -122,12 +136,17 @@ export default function SettingPage() {
           >
             BGM を保存
           </button>
-          <button
-            onClick={() => saveSettings({ bgm: null })}
-            className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded"
-          >
-            BGM をリセット
-          </button>
+          {tempBgm && (
+            <button
+              onClick={() => {
+                setTempBgm(null);
+                saveSettings({ bgm: null });
+              }}
+              className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded"
+            >
+              BGM を削除
+            </button>
+          )}
         </div>
       </div>
     </div>
