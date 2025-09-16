@@ -1,0 +1,44 @@
+/* src/index.css */
+
+/* Google font (handwritten-style) */
+@import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* base style */
+html, body, #root {
+  height: 100%;
+}
+body {
+  font-family: "Patrick Hand", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  background: #FFF9E6; /* 淡い優しい黄色 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+}
+
+/* small visual tweaks so calendar and cards look neat */
+.calendar-large .cell {
+  min-height: 64px;
+}
+.calendar-large .cell .date {
+  font-weight: 600;
+}
+.calendar-small .cell {
+  min-height: 40px;
+}
+
+/* center the main content on larger screens */
+@media (min-width: 768px) {
+  .max-w-4xl {
+    max-width: 64rem;
+  }
+}
+
+/* make card shapes rounder */
+.rounded-xl {
+  border-radius: 12px;
+}
+
