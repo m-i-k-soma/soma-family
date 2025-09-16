@@ -8,16 +8,19 @@ const SchedulePage = () => {
   const { getEventsByDate } = useEvents();
   const [selectedDate, setSelectedDate] = useState(null);
 
+  // 日付クリックでモーダルを開く
   const handleDateClick = (dateKey) => {
     setSelectedDate(dateKey);
   };
 
   return (
-    <div className="min-h-screen p-6 flex justify-center">
+    <div className="min-h-screen p-6 flex flex-col items-center">
       <div className="w-full max-w-4xl">
-        <h1 className="text-2xl font-bold text-center mb-4">📅 スケジュール管理</h1>
+        <h1 className="text-2xl font-bold text-center mb-4">
+          📅 スケジュール管理
+        </h1>
 
-        {/* カレンダー本体 */}
+        {/* カレンダー部分 */}
         <div className="bg-transparent p-2 flex justify-center">
           <div className="w-full">
             <MonthCalendar onDateClick={handleDateClick} small={false} />
@@ -25,12 +28,14 @@ const SchedulePage = () => {
         </div>
       </div>
 
-      {/* モーダル */}
+      {/* モーダル部分 */}
       {selectedDate && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-40">
           <div className="bg-white rounded-xl p-4 w-full max-w-lg">
             <div className="flex justify-between items-center mb-2">
-              <h2 className="text-lg font-semibold">📅 {selectedDate} の予定</h2>
+              <h2 className="text-lg font-semibold">
+                📅 {selectedDate} の予定
+              </h2>
               <button
                 onClick={() => setSelectedDate(null)}
                 className="px-2 py-1 rounded bg-gray-200"
@@ -72,10 +77,12 @@ const SchedulePage = () => {
 
                     {/* メモ */}
                     {ev.memo && (
-                      <div className="mt-2 text-sm text-gray-700">{ev.memo}</div>
+                      <div className="mt-2 text-sm text-gray-700">
+                        {ev.memo}
+                      </div>
                     )}
 
-                    {/* 画像 (album.images or stream.images) */}
+                    {/* 画像 (配信・アルバム) */}
                     {ev.images && ev.images.length > 0 && (
                       <div className="flex gap-2 mt-2 flex-wrap">
                         {ev.images.map((src, i) => (
@@ -89,7 +96,7 @@ const SchedulePage = () => {
                       </div>
                     )}
 
-                    {/* サムネイル (music.thumbnail) */}
+                    {/* サムネイル (楽曲) */}
                     {ev.thumbnail && (
                       <div className="mt-2">
                         <img
@@ -100,7 +107,7 @@ const SchedulePage = () => {
                       </div>
                     )}
 
-                    {/* URLリンク */}
+                    {/* URL (楽曲リンク) */}
                     {ev.url && (
                       <div className="mt-2">
                         <a
@@ -120,6 +127,7 @@ const SchedulePage = () => {
           </div>
         </div>
       )}
+
       <BackButton />
     </div>
   );
