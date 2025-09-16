@@ -1,7 +1,6 @@
-// src/pages/AlbumPage.jsx
 import React, { useState, useEffect } from "react";
 import { useEvents } from "../context/EventContext";
-import BackButton from '../components/BackButton';
+import BackButton from "../components/BackButton";
 
 const AlbumPage = () => {
   const [date, setDate] = useState("");
@@ -92,11 +91,17 @@ const AlbumPage = () => {
     } catch (e) {}
   };
 
-  // 画像アップロード処理
+  // 画像アップロード処理（base64に変換して保存）
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
-    const newImages = files.map((file) => URL.createObjectURL(file));
-    setImages([...images, ...newImages]);
+
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setImages((prev) => [...prev, event.target.result]); // ← base64で保存
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
   return (
@@ -105,16 +110,46 @@ const AlbumPage = () => {
 
       {/* 入力フォーム */}
       <div className="bg-white shadow-md rounded-xl p-4 max-w-md mx-auto">
-        <input type="date" className="w-full border rounded p-2 mb-2" value={date} onChange={(e) => setDate(e.target.value)} />
-        <input type="text" placeholder="タイトル (例: ライブ・誕生日記念)" className="w-full border rounded p-2 mb-2" value={title} onChange={(e) => setTitle(e.target.value)} />
-        <textarea placeholder="コメント／思い出の記録" className="w-full border rounded p-2 mb-2" value={comment} onChange={(e) => setComment(e.target.value)} />
-        <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="mb-2" />
+        <input
+          type="date"
+          className="w-full border rounded p-2 mb-2"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+        />
+        <input
+          type="text"
+          placeholder="タイトル (例: ライブ・誕生日記念)"
+          className="w-full border rounded p-2 mb-2"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+        <textarea
+          placeholder="コメント／思い出の記録"
+          className="w-full border rounded p-2 mb-2"
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+        />
+        <input
+          type="file"
+          multiple
+          accept="image/*"
+          onChange={handleImageUpload}
+          className="mb-2"
+        />
         <div className="flex flex-wrap gap-2 mb-2">
           {images.map((img, idx) => (
-            <img key={idx} src={img} alt="preview" className="w-20 h-20 object-cover rounded" />
+            <img
+              key={idx}
+              src={img}
+              alt="preview"
+              className="w-20 h-20 object-cover rounded"
+            />
           ))}
         </div>
-        <button onClick={handleSave} className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded">
+        <button
+          onClick={handleSave}
+          className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded"
+        >
           {editIndex !== null ? "更新する" : "保存する"}
         </button>
         {message && <p className="text-center mt-2 text-green-600">{message}</p>}
@@ -130,21 +165,35 @@ const AlbumPage = () => {
               <h2 className="text-lg font-semibold mb-2">📅 {dateKey}</h2>
               <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
                 {albums.map((album, index) => (
-                  <div key={index} className="bg-white shadow-md rounded-xl overflow-hidden">
+                  <div
+                    key={index}
+                    className="bg-white shadow-md rounded-xl overflow-hidden"
+                  >
                     <div className="p-4 flex flex-col h-full">
                       <h3 className="font-bold text-lg mb-1">{album.title}</h3>
                       <p className="text-gray-700 flex-grow">{album.comment}</p>
                       <div className="flex flex-wrap gap-2 mt-2">
                         {album.images &&
                           album.images.map((img, idx) => (
-                            <img key={idx} src={img} alt="saved" className="w-16 h-16 object-cover rounded" />
+                            <img
+                              key={idx}
+                              src={img}
+                              alt="saved"
+                              className="w-16 h-16 object-cover rounded"
+                            />
                           ))}
                       </div>
                       <div className="flex justify-end gap-2 mt-2">
-                        <button onClick={() => handleEdit(dateKey, index)} className="px-3 py-1 bg-blue-400 text-white rounded">
+                        <button
+                          onClick={() => handleEdit(dateKey, index)}
+                          className="px-3 py-1 bg-blue-400 text-white rounded"
+                        >
                           編集
                         </button>
-                        <button onClick={() => handleDelete(dateKey, index)} className="px-3 py-1 bg-red-400 text-white rounded">
+                        <button
+                          onClick={() => handleDelete(dateKey, index)}
+                          className="px-3 py-1 bg-red-400 text-white rounded"
+                        >
                           削除
                         </button>
                       </div>
@@ -156,9 +205,11 @@ const AlbumPage = () => {
           ))
         )}
       </div>
+
+      <BackButton />
     </div>
   );
 };
-<BackButton />
+
 export default AlbumPage;
 
