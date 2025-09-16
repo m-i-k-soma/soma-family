@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { useEvents } from "../context/EventContext";
-import BackButton from "../components/BackButton";
 import localforage from "localforage";
+import BackButton from "../components/BackButton";
+
+// base64 変換
+const fileToBase64 = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = (err) => reject(err);
+    reader.readAsDataURL(file);
+  });
 
 const StreamLogPage = () => {
   const [date, setDate] = useState("");
@@ -16,11 +25,11 @@ const StreamLogPage = () => {
 
   const { refreshFromStorages } = useEvents();
 
+  // IndexedDB(localforage) からデータ読み込み
   useEffect(() => {
-    (async () => {
-      const storedLogs = await localforage.getItem("streamLogs");
-      if (storedLogs) setSavedLogs(storedLogs);
-    })();
+    localforage.getItem("streamLogs").then((data) => {
+      if (data) setSavedLogs(data);
+    });
   }, []);
 
   const resetForm = () => {
@@ -54,9 +63,10 @@ const StreamLogPage = () => {
 
     setSavedLogs(updatedLogs);
     await localforage.setItem("streamLogs", updatedLogs);
+
     try {
       refreshFromStorages();
-    } catch {}
+    } catch (e) {}
 
     setMessage(editIndex !== null ? "更新しました！" : "保存しました！");
     resetForm();
@@ -82,19 +92,17 @@ const StreamLogPage = () => {
     await localforage.setItem("streamLogs", updatedLogs);
     try {
       refreshFromStorages();
-    } catch {}
+    } catch (e) {}
   };
 
-  // base64変換して保存
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files);
-    files.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setImages((prev) => [...prev, reader.result]); // base64 を保存
-      };
-      reader.readAsDataURL(file);
-    });
+    const base64Images = await Promise.all(files.map(fileToBase64));
+    setImages([...images, ...base64Images]);
+  };
+
+  const handleImageDelete = (idx) => {
+    setImages(images.filter((_, i) => i !== idx));
   };
 
   return (
@@ -103,20 +111,34 @@ const StreamLogPage = () => {
 
       {/* 入力フォーム */}
       <div className="bg-white shadow-md rounded-xl p-4 max-w-md mx-auto">
-        <input type="date" className="w-full border rounded p-2 mb-2" value={date} onChange={(e) => setDate(e.target.value)} />
-        <input type="text" placeholder="配信タイトル" className="w-full border rounded p-2 mb-2" value={title} onChange={(e) => setTitle(e.target.value)} />
+        <input type="date" className="w-full border rounded p-2 mb-2"
+          value={date} onChange={(e) => setDate(e.target.value)} />
+        <input type="text" placeholder="配信タイトル"
+          className="w-full border rounded p-2 mb-2"
+          value={title} onChange={(e) => setTitle(e.target.value)} />
         <div className="flex gap-2 mb-2">
-          <input type="time" className="w-1/2 border rounded p-2" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
-          <input type="time" className="w-1/2 border rounded p-2" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+          <input type="time" className="w-1/2 border rounded p-2"
+            value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+          <input type="time" className="w-1/2 border rounded p-2"
+            value={endTime} onChange={(e) => setEndTime(e.target.value)} />
         </div>
-        <textarea placeholder="メモ・感想" className="w-full border rounded p-2 mb-2" value={memo} onChange={(e) => setMemo(e.target.value)} />
-        <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="mb-2" />
+        <textarea placeholder="メモ・感想"
+          className="w-full border rounded p-2 mb-2"
+          value={memo} onChange={(e) => setMemo(e.target.value)} />
+        <input type="file" multiple accept="image/*"
+          onChange={handleImageUpload} className="mb-2" />
         <div className="flex flex-wrap gap-2 mb-2">
           {images.map((img, idx) => (
-            <img key={idx} src={img} alt="preview" className="w-20 h-20 object-cover rounded" />
+            <div key={idx} className="relative">
+              <img src={img} alt="preview"
+                className="w-20 h-20 object-cover rounded" />
+              <button onClick={() => handleImageDelete(idx)}
+                className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full px-1">×</button>
+            </div>
           ))}
         </div>
-        <button onClick={handleSave} className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded">
+        <button onClick={handleSave}
+          className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded">
           {editIndex !== null ? "更新する" : "保存する"}
         </button>
         {message && <p className="text-center mt-2 text-green-600">{message}</p>}
@@ -137,13 +159,16 @@ const StreamLogPage = () => {
                     <p className="text-sm text-gray-600">{log.startTime} - {log.endTime}</p>
                     <p className="mt-2 text-gray-700">{log.memo}</p>
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {log.images && log.images.map((img, idx) => (
-                        <img key={idx} src={img} alt="saved" className="w-16 h-16 object-cover rounded" />
+                      {log.images?.map((img, idx) => (
+                        <img key={idx} src={img} alt="saved"
+                          className="w-16 h-16 object-cover rounded" />
                       ))}
                     </div>
                     <div className="flex justify-end gap-2 mt-2">
-                      <button onClick={() => handleEdit(dateKey, index)} className="px-3 py-1 bg-blue-400 text-white rounded">編集</button>
-                      <button onClick={() => handleDelete(dateKey, index)} className="px-3 py-1 bg-red-400 text-white rounded">削除</button>
+                      <button onClick={() => handleEdit(dateKey, index)}
+                        className="px-3 py-1 bg-blue-400 text-white rounded">編集</button>
+                      <button onClick={() => handleDelete(dateKey, index)}
+                        className="px-3 py-1 bg-red-400 text-white rounded">削除</button>
                     </div>
                   </div>
                 ))}
