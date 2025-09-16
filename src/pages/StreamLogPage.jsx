@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useEvents } from "../context/EventContext";
-import BackButton from '../components/BackButton';
+import BackButton from "../components/BackButton";
 import localforage from "localforage";
 
 const StreamLogPage = () => {
@@ -16,7 +16,6 @@ const StreamLogPage = () => {
 
   const { refreshFromStorages } = useEvents();
 
-  // 保存データの読み込み
   useEffect(() => {
     (async () => {
       const storedLogs = await localforage.getItem("streamLogs");
@@ -24,7 +23,6 @@ const StreamLogPage = () => {
     })();
   }, []);
 
-  // フォームリセット
   const resetForm = () => {
     setDate("");
     setTitle("");
@@ -35,7 +33,6 @@ const StreamLogPage = () => {
     setEditIndex(null);
   };
 
-  // 保存処理
   const handleSave = async () => {
     if (!date || !title) {
       setMessage("日付とタイトルは必須です。");
@@ -57,19 +54,15 @@ const StreamLogPage = () => {
 
     setSavedLogs(updatedLogs);
     await localforage.setItem("streamLogs", updatedLogs);
-
     try {
       refreshFromStorages();
-    } catch (e) {
-      console.error("refreshFromStorages error:", e);
-    }
+    } catch {}
 
     setMessage(editIndex !== null ? "更新しました！" : "保存しました！");
     resetForm();
     setTimeout(() => setMessage(""), 2000);
   };
 
-  // 編集処理
   const handleEdit = (dateKey, index) => {
     const log = savedLogs[dateKey][index];
     setDate(dateKey);
@@ -81,7 +74,6 @@ const StreamLogPage = () => {
     setEditIndex(index);
   };
 
-  // 削除処理
   const handleDelete = async (dateKey, index) => {
     const updatedLogs = { ...savedLogs };
     updatedLogs[dateKey].splice(index, 1);
@@ -90,14 +82,19 @@ const StreamLogPage = () => {
     await localforage.setItem("streamLogs", updatedLogs);
     try {
       refreshFromStorages();
-    } catch (e) {}
+    } catch {}
   };
 
-  // 画像アップロード処理
+  // base64変換して保存
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
-    const newImages = files.map((file) => URL.createObjectURL(file));
-    setImages([...images, ...newImages]);
+    files.forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setImages((prev) => [...prev, reader.result]); // base64 を保存
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
   return (
