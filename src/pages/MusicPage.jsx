@@ -1,7 +1,7 @@
-// src/pages/MusicPage.jsx
 import React, { useState, useEffect } from "react";
 import { useEvents } from "../context/EventContext";
 import BackButton from '../components/BackButton';
+import localforage from "localforage";
 
 const MusicPage = () => {
   const [selectedCategory, setSelectedCategory] = useState(null); // "original" or "cover"
@@ -22,10 +22,10 @@ const MusicPage = () => {
   };
 
   useEffect(() => {
-    const storedLogs = localStorage.getItem("musicLogs");
-    if (storedLogs) {
-      setMusicLogs(JSON.parse(storedLogs));
-    }
+    (async () => {
+      const storedLogs = await localforage.getItem("musicLogs");
+      if (storedLogs) setMusicLogs(storedLogs);
+    })();
   }, []);
 
   const resetForm = () => {
@@ -37,7 +37,7 @@ const MusicPage = () => {
     setEditIndex(null);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!date || !title) {
       setMessage("日付とタイトルは必須です。");
       return;
@@ -53,7 +53,7 @@ const MusicPage = () => {
     }
 
     setMusicLogs(updatedLogs);
-    localStorage.setItem("musicLogs", JSON.stringify(updatedLogs));
+    await localforage.setItem("musicLogs", updatedLogs);
 
     try {
       refreshFromStorages();
@@ -61,7 +61,6 @@ const MusicPage = () => {
 
     setMessage(editIndex !== null ? "更新しました！" : "保存しました！");
     resetForm();
-
     setTimeout(() => setMessage(""), 2000);
   };
 
@@ -75,11 +74,11 @@ const MusicPage = () => {
     setEditIndex(index);
   };
 
-  const handleDelete = (index) => {
+  const handleDelete = async (index) => {
     const updatedLogs = { ...musicLogs };
     updatedLogs[selectedCategory].splice(index, 1);
     setMusicLogs(updatedLogs);
-    localStorage.setItem("musicLogs", JSON.stringify(updatedLogs));
+    await localforage.setItem("musicLogs", updatedLogs);
     try {
       refreshFromStorages();
     } catch (e) {}
@@ -87,9 +86,7 @@ const MusicPage = () => {
 
   const handleThumbnailUpload = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setThumbnail(URL.createObjectURL(file));
-    }
+    if (file) setThumbnail(URL.createObjectURL(file));
   };
 
   return (
@@ -98,12 +95,8 @@ const MusicPage = () => {
 
       {!selectedCategory ? (
         <div className="flex justify-center gap-4 mt-10">
-          <button onClick={() => setSelectedCategory("original")} className="px-6 py-3 bg-yellow-400 hover:bg-yellow-500 text-black font-bold rounded-xl shadow-md">
-            オリジナル楽曲
-          </button>
-          <button onClick={() => setSelectedCategory("cover")} className="px-6 py-3 bg-yellow-400 hover:bg-yellow-500 text-black font-bold rounded-xl shadow-md">
-            歌ってみた
-          </button>
+          <button onClick={() => setSelectedCategory("original")} className="px-6 py-3 bg-yellow-400 hover:bg-yellow-500 text-black font-bold rounded-xl shadow-md">オリジナル楽曲</button>
+          <button onClick={() => setSelectedCategory("cover")} className="px-6 py-3 bg-yellow-400 hover:bg-yellow-500 text-black font-bold rounded-xl shadow-md">歌ってみた</button>
         </div>
       ) : (
         <>
@@ -140,12 +133,8 @@ const MusicPage = () => {
                         </a>
                       )}
                       <div className="flex justify-end gap-2 mt-2">
-                        <button onClick={() => handleEdit(index)} className="px-3 py-1 bg-blue-400 text-white rounded">
-                          編集
-                        </button>
-                        <button onClick={() => handleDelete(index)} className="px-3 py-1 bg-red-400 text-white rounded">
-                          削除
-                        </button>
+                        <button onClick={() => handleEdit(index)} className="px-3 py-1 bg-blue-400 text-white rounded">編集</button>
+                        <button onClick={() => handleDelete(index)} className="px-3 py-1 bg-red-400 text-white rounded">削除</button>
                       </div>
                     </div>
                   </div>
@@ -155,15 +144,14 @@ const MusicPage = () => {
           </div>
 
           <div className="flex justify-center mt-6">
-            <button onClick={() => { resetForm(); setSelectedCategory(null); }} className="px-6 py-2 bg-gray-300 hover:bg-gray-400 text-black rounded">
-              ← 戻る
-            </button>
+            <button onClick={() => { resetForm(); setSelectedCategory(null); }} className="px-6 py-2 bg-gray-300 hover:bg-gray-400 text-black rounded">← 戻る</button>
           </div>
         </>
       )}
+      <BackButton />
     </div>
   );
 };
-<BackButton />
+
 export default MusicPage;
 
