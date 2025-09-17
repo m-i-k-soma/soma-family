@@ -95,13 +95,22 @@ const AlbumPage = () => {
   };
 
   const handleEdit = (dateKey, index) => {
-    const album = savedAlbums[dateKey][index];
-    setDate(dateKey);
-    setTitle(album.title);
-    setComment(album.comment);
-    setImages(album.images || []);
-    setEditIndex(index);
-  };
+  const album = savedAlbums[dateKey][index];
+  setDate(dateKey);
+  setTitle(album.title);
+  setComment(album.comment);
+  setImages(album.images || []);
+  setEditIndex(index);
+
+  // 🔽 編集開始時に previews も再構築
+  const newPreviews = {};
+  (album.images || []).forEach((key) => {
+    if (previews[key]) {
+      newPreviews[key] = previews[key]; // 既存のURLを流用
+    }
+  });
+  setPreviews(newPreviews);
+};
 
   const handleDeleteAlbum = async (dateKey, index) => {
     const updated = { ...savedAlbums };
