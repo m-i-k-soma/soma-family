@@ -94,7 +94,7 @@ const AlbumPage = () => {
     setTimeout(() => setMessage(""), 2000);
   };
 
-  const handleEdit = (dateKey, index) => {
+  const handleEdit = async (dateKey, index) => {
   const album = savedAlbums[dateKey][index];
   setDate(dateKey);
   setTitle(album.title);
@@ -102,13 +102,16 @@ const AlbumPage = () => {
   setImages(album.images || []);
   setEditIndex(index);
 
-  // 🔽 編集開始時に previews も再構築
+  // 🔽 previews を localforage から再生成
   const newPreviews = {};
-  (album.images || []).forEach((key) => {
-    if (previews[key]) {
-      newPreviews[key] = previews[key]; // 既存のURLを流用
+  for (const key of album.images || []) {
+    let blob = await localforage.getItem(key);
+    if (blob instanceof Blob) {
+      newPreviews[key] = URL.createObjectURL(blob);
+    } else if (typeof blob === "string") {
+      newPreviews[key] = blob;
     }
-  });
+  }
   setPreviews(newPreviews);
 };
 
