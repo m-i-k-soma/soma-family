@@ -78,14 +78,21 @@ const MusicPage = () => {
     setEditIndex(index);
   };
 
-  const handleDelete = (index) => {
+  const handleDelete = (indexToDelete = editIndex) => {
+    if (indexToDelete === null) return;
+
     const updatedLogs = { ...musicLogs };
-    updatedLogs[selectedCategory].splice(index, 1);
+    updatedLogs[selectedCategory].splice(indexToDelete, 1);
     setMusicLogs(updatedLogs);
     localStorage.setItem("musicLogs", JSON.stringify(updatedLogs));
+
     try {
       refreshFromStorages();
     } catch (e) {}
+
+    resetForm();
+    setMessage("削除しました！");
+    setTimeout(() => setMessage(""), 2000);
   };
 
   // Base64に変換して保存
@@ -125,6 +132,7 @@ const MusicPage = () => {
             {categoryLabel[selectedCategory]}
           </h2>
 
+          {/* 編集・追加フォーム */}
           <div className="bg-white shadow-md rounded-xl p-4 max-w-md mx-auto">
             <input
               type="date"
@@ -165,17 +173,30 @@ const MusicPage = () => {
                 className="w-24 h-24 object-cover rounded mb-2"
               />
             )}
-            <button
-              onClick={handleSave}
-              className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded"
-            >
-              {editIndex !== null ? "更新する" : "保存する"}
-            </button>
+
+            <div className="flex gap-2">
+              <button
+                onClick={handleSave}
+                className="flex-1 bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded"
+              >
+                {editIndex !== null ? "更新する" : "保存する"}
+              </button>
+              {editIndex !== null && (
+                <button
+                  onClick={() => handleDelete()}
+                  className="flex-1 bg-red-400 hover:bg-red-500 text-white font-bold py-2 px-4 rounded"
+                >
+                  削除する
+                </button>
+              )}
+            </div>
+
             {message && (
               <p className="text-center mt-2 text-green-600">{message}</p>
             )}
           </div>
 
+          {/* 一覧表示 */}
           <div className="mt-6 max-w-4xl mx-auto">
             {musicLogs[selectedCategory].length === 0 ? (
               <p className="text-center text-gray-500">
