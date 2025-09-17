@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useEvents } from "../context/EventContext";
 import BackButton from "../components/BackButton";
+import localforage from "localforage";
 
 const MusicPage = () => {
   const [selectedCategory, setSelectedCategory] = useState(null); // "original" or "cover"
