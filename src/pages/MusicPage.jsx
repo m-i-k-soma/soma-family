@@ -60,7 +60,7 @@ const MusicPage = () => {
     localStorage.setItem("musicLogs", JSON.stringify(updatedLogs));
 
     try {
-      refreshFromStorages();
+      await refreshFromStorages();
     } catch (e) {}
 
     setMessage(editIndex !== null ? "更新しました！" : "保存しました！");
