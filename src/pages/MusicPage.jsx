@@ -167,11 +167,21 @@ const MusicPage = () => {
               className="mb-2"
             />
             {thumbnail && (
-              <img
+              <div className="relative mb-2 inline-block">
+               <img
                 src={thumbnail}
                 alt="thumbnail preview"
                 className="w-24 h-24 object-cover rounded mb-2"
               />
+              <button
+                type="button"
+                onClick={() => setThumbnail(null)}
+                className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 text-xs"
+                title="画像を削除"
+              >
+               ✕
+              </button>
+            </div>
             )}
 
             <div className="flex gap-2">
