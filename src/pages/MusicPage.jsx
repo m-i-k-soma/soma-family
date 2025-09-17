@@ -23,11 +23,15 @@ const MusicPage = () => {
   };
 
   useEffect(() => {
-    const storedLogs = localStorage.getItem("musicLogs");
+   const loadLogs = async () => {
+    const storedLogs = await localforage.getItem("musicLogs");
     if (storedLogs) {
-      setMusicLogs(JSON.parse(storedLogs));
+      setMusicLogs(storedLogs);
     }
-  }, []);
+  };
+  loadLogs();
+}, []);
+
 
   const resetForm =  () => {
     setDate("");
@@ -56,10 +60,10 @@ const MusicPage = () => {
       ];
     }
 
+    await localforage.setItem("musicLogs", updatedLogs);
     setMusicLogs(updatedLogs);
     console.log("保存されたmusicLogs:", updatedLogs);
-
-    localStorage.setItem("musicLogs", JSON.stringify(updatedLogs));
+    await refreshFromStorages();
 
     try {
       await refreshFromStorages();
@@ -82,24 +86,20 @@ const MusicPage = () => {
   };
 
   const handleDelete = async (indexToDelete = editIndex) => {
-    if (indexToDelete === null) return;
+  if (indexToDelete === null || selectedCategory === null) return;
 
-    const updatedLogs = { ...musicLogs };
-    updatedLogs[selectedCategory].splice(indexToDelete, 1);
-    setMusicLogs(updatedLogs);
+  const stored = (await localforage.getItem("musicLogs")) || { original: [], cover: [] };
+  const updatedLogs = { ...stored };
+  updatedLogs[selectedCategory].splice(indexToDelete, 1);
 
-    await localforage.setItem("musicLogs", updatedLogs);
-    setMusicLogs(updatedLogs);
-    await refreshFromStorages();
+  await localforage.setItem("musicLogs", updatedLogs);
+  setMusicLogs(updatedLogs);
+  await refreshFromStorages();
 
-    try {
-      refreshFromStorages();
-    } catch (e) {}
-
-    resetForm();
-    setMessage("削除しました！");
-    setTimeout(() => setMessage(""), 2000);
-  };
+  resetForm();
+  setMessage("削除しました！");
+  setTimeout(() => setMessage(""), 2000);
+};
 
   // Base64に変換して保存
   const handleThumbnailUpload = (e) => {
