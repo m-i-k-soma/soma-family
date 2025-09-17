@@ -28,7 +28,7 @@ const MusicPage = () => {
     }
   }, []);
 
-  const resetForm = () => {
+  const resetForm =  () => {
     setDate("");
     setTitle("");
     setMemo("");
@@ -37,7 +37,7 @@ const MusicPage = () => {
     setEditIndex(null);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!date || !title) {
       setMessage("日付とタイトルは必須です。");
       return;
@@ -78,13 +78,14 @@ const MusicPage = () => {
     setEditIndex(index);
   };
 
-  const handleDelete = (indexToDelete = editIndex) => {
+  const handleDelete = async (indexToDelete = editIndex) => {
     if (indexToDelete === null) return;
 
     const updatedLogs = { ...musicLogs };
     updatedLogs[selectedCategory].splice(indexToDelete, 1);
     setMusicLogs(updatedLogs);
-    localStorage.setItem("musicLogs", JSON.stringify(updatedLogs));
+
+    await localforage.setItem("musicLogs", updatedLogs);
 
     try {
       refreshFromStorages();
