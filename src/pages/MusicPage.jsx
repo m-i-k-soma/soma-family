@@ -57,6 +57,8 @@ const MusicPage = () => {
     }
 
     setMusicLogs(updatedLogs);
+    console.log("保存されたmusicLogs:", updatedLogs);
+
     localStorage.setItem("musicLogs", JSON.stringify(updatedLogs));
 
     try {
@@ -68,8 +70,7 @@ const MusicPage = () => {
 
     setTimeout(() => setMessage(""), 2000);
   };
-  console.log("保存されたmusicLogs:", updatedLogs);
-
+  
   const handleEdit = (index) => {
     const entry = musicLogs[selectedCategory][index];
     setDate(entry.date);
