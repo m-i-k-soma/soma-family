@@ -1,30 +1,48 @@
+// src/pages/AlbumPage.jsx
 import React, { useState, useEffect } from "react";
 import localforage from "localforage";
 import { useEvents } from "../context/EventContext";
-import BackButton from "../components/BackButton";
+import BackButton from '../components/BackButton';
 
 const AlbumPage = () => {
   const [date, setDate] = useState("");
   const [title, setTitle] = useState("");
   const [comment, setComment] = useState("");
-  const [images, setImages] = useState([]);
+  const [images, setImages] = useState([]); // stores image keys (strings)
+  const [previews, setPreviews] = useState({}); // key -> objectURL for preview
   const [savedAlbums, setSavedAlbums] = useState({});
   const [message, setMessage] = useState("");
   const [editIndex, setEditIndex] = useState(null);
 
   const { refreshFromStorages } = useEvents();
 
-  // 初回ロード
+  // load saved albums
   useEffect(() => {
-    (async () => {
-      const storedAlbums = await localforage.getItem("albumLogs");
-      if (storedAlbums) {
-        setSavedAlbums(storedAlbums);
+    const load = async () => {
+      const stored = (await localforage.getItem("albumLogs")) || {};
+      setSavedAlbums(stored);
+
+      // prefetch previews for stored images
+      const map = {};
+      for (const arr of Object.values(stored)) {
+        for (const entry of arr) {
+          if (Array.isArray(entry.images)) {
+            for (const key of entry.images) {
+              if (!map[key]) {
+                const blob = await localforage.getItem(key);
+                if (blob instanceof Blob) map[key] = URL.createObjectURL(blob);
+                else if (typeof blob === "string") map[key] = blob;
+              }
+            }
+          }
+        }
       }
-    })();
+      setPreviews(map);
+    };
+    load();
   }, []);
 
-  // 入力リセット
+  // reset form
   const resetForm = () => {
     setDate("");
     setTitle("");
@@ -33,41 +51,49 @@ const AlbumPage = () => {
     setEditIndex(null);
   };
 
-  // 保存処理
+  // when user selects files, store blobs in localforage immediately and save keys
+  const handleImageUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    const newKeys = [];
+    const newPreviews = { ...previews };
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const key = `albumimg_${Date.now()}_${Math.random().toString(36).slice(2,9)}`;
+      try {
+        await localforage.setItem(key, file); // store Blob / File
+        newKeys.push(key);
+        newPreviews[key] = URL.createObjectURL(file);
+      } catch (err) {
+        console.error("store image err", err);
+      }
+    }
+    setImages((prev) => [...prev, ...newKeys]);
+    setPreviews(newPreviews);
+  };
+
+  // save album (images contains keys)
   const handleSave = async () => {
     if (!date || !title) {
       setMessage("日付とタイトルは必須です。");
       return;
     }
-
-    const newAlbum = { title, comment, images };
-    let updatedAlbums = { ...savedAlbums };
-
+    const newAlbum = { title, comment, images: images.slice() };
+    const stored = (await localforage.getItem("albumLogs")) || {};
+    const arr = stored[date] ? [...stored[date]] : [];
     if (editIndex !== null) {
-      if (!updatedAlbums[date]) {
-        updatedAlbums[date] = [];
-      }
-      updatedAlbums[date][editIndex] = newAlbum;
+      arr[editIndex] = newAlbum;
     } else {
-      updatedAlbums = {
-        ...updatedAlbums,
-        [date]: [...(updatedAlbums[date] || []), newAlbum],
-      };
+      arr.push(newAlbum);
     }
-
-    setSavedAlbums(updatedAlbums);
-    await localforage.setItem("albumLogs", updatedAlbums);
-
-    try {
-      refreshFromStorages();
-    } catch (e) {}
-
+    const updated = { ...stored, [date]: arr };
+    await localforage.setItem("albumLogs", updated);
+    setSavedAlbums(updated);
+    try { await refreshFromStorages(); } catch(e){}
     setMessage(editIndex !== null ? "更新しました！" : "保存しました！");
     resetForm();
     setTimeout(() => setMessage(""), 2000);
   };
 
-  // 編集処理
   const handleEdit = (dateKey, index) => {
     const album = savedAlbums[dateKey][index];
     setDate(dateKey);
@@ -77,36 +103,41 @@ const AlbumPage = () => {
     setEditIndex(index);
   };
 
-  // アルバム削除
-  const handleDelete = async (dateKey, index) => {
-    const updatedAlbums = { ...savedAlbums };
-    updatedAlbums[dateKey].splice(index, 1);
-    if (updatedAlbums[dateKey].length === 0) {
-      delete updatedAlbums[dateKey];
+  const handleDeleteAlbum = async (dateKey, index) => {
+    const updated = { ...savedAlbums };
+    const entry = updated[dateKey][index];
+    // remove related blobs from storage
+    if (entry?.images) {
+      for (const k of entry.images) {
+        try { await localforage.removeItem(k); } catch(e){/*ignore*/ }
+      }
     }
-    setSavedAlbums(updatedAlbums);
-    await localforage.setItem("albumLogs", updatedAlbums);
-    try {
-      refreshFromStorages();
-    } catch (e) {}
+    updated[dateKey].splice(index, 1);
+    if (updated[dateKey].length === 0) delete updated[dateKey];
+    await localforage.setItem("albumLogs", updated);
+    setSavedAlbums(updated);
+    try { await refreshFromStorages(); } catch(e){}
   };
 
-  // 写真削除
-  const handleImageDelete = (idx) => {
-    const newImages = images.filter((_, i) => i !== idx);
-    setImages(newImages);
-  };
-
-  // 画像アップロード
-  const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files);
-    files.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setImages((prev) => [...prev, reader.result]);
-      };
-      reader.readAsDataURL(file);
+  // delete a single image from a saved album
+  const handleDeleteImageInAlbum = async (dateKey, albumIndex, imageKey) => {
+    const updated = { ...savedAlbums };
+    const album = updated[dateKey][albumIndex];
+    album.images = album.images.filter((k) => k !== imageKey);
+    // remove blob from storage
+    try { await localforage.removeItem(imageKey); } catch(e){}
+    await localforage.setItem("albumLogs", updated);
+    // update previews
+    setPreviews((p) => {
+      const copy = { ...p };
+      if (copy[imageKey]) {
+        URL.revokeObjectURL(copy[imageKey]);
+        delete copy[imageKey];
+      }
+      return copy;
     });
+    setSavedAlbums(updated);
+    try { await refreshFromStorages(); } catch(e){}
   };
 
   return (
@@ -116,32 +147,23 @@ const AlbumPage = () => {
       {/* 入力フォーム */}
       <div className="bg-white shadow-md rounded-xl p-4 max-w-md mx-auto">
         <input type="date" className="w-full border rounded p-2 mb-2" value={date} onChange={(e) => setDate(e.target.value)} />
-        <input type="text" placeholder="タイトル" className="w-full border rounded p-2 mb-2" value={title} onChange={(e) => setTitle(e.target.value)} />
-        <textarea placeholder="コメント／思い出" className="w-full border rounded p-2 mb-2" value={comment} onChange={(e) => setComment(e.target.value)} />
+        <input type="text" placeholder="タイトル (例: ライブ・誕生日記念)" className="w-full border rounded p-2 mb-2" value={title} onChange={(e) => setTitle(e.target.value)} />
+        <textarea placeholder="コメント／思い出の記録" className="w-full border rounded p-2 mb-2" value={comment} onChange={(e) => setComment(e.target.value)} />
         <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="mb-2" />
-
-        {/* アップロード画像一覧 */}
         <div className="flex flex-wrap gap-2 mb-2">
-          {images.map((img, idx) => (
-            <div key={idx} className="relative">
-              <img src={img} alt="preview" className="w-20 h-20 object-cover rounded" />
-              <button
-                onClick={() => handleImageDelete(idx)}
-                className="absolute top-0 right-0 bg-red-500 text-white text-xs px-1 rounded"
-              >
-                ✕
-              </button>
+          {images.map((key, idx) => (
+            <div key={key} className="relative">
+              <img src={previews[key]} alt="preview" className="w-20 h-20 object-cover rounded" />
             </div>
           ))}
         </div>
-
         <button onClick={handleSave} className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded">
           {editIndex !== null ? "更新する" : "保存する"}
         </button>
         {message && <p className="text-center mt-2 text-green-600">{message}</p>}
       </div>
 
-      {/* 保存済みアルバム */}
+      {/* 保存済みデータ一覧 */}
       <div className="mt-6 max-w-4xl mx-auto">
         {Object.keys(savedAlbums).length === 0 ? (
           <p className="text-center text-gray-500">まだアルバムはありません。</p>
@@ -157,15 +179,24 @@ const AlbumPage = () => {
                       <p className="text-gray-700 flex-grow">{album.comment}</p>
                       <div className="flex flex-wrap gap-2 mt-2">
                         {album.images &&
-                          album.images.map((img, idx) => (
-                            <img key={idx} src={img} alt="saved" className="w-16 h-16 object-cover rounded" />
+                          album.images.map((imgKey, idx) => (
+                            <div key={imgKey} className="relative">
+                              <img src={previews[imgKey]} alt="saved" className="w-16 h-16 object-cover rounded" />
+                              <button
+                                onClick={() => handleDeleteImageInAlbum(dateKey, index, imgKey)}
+                                className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded px-1"
+                                title="この写真を削除"
+                              >
+                                ✕
+                              </button>
+                            </div>
                           ))}
                       </div>
                       <div className="flex justify-end gap-2 mt-2">
                         <button onClick={() => handleEdit(dateKey, index)} className="px-3 py-1 bg-blue-400 text-white rounded">
                           編集
                         </button>
-                        <button onClick={() => handleDelete(dateKey, index)} className="px-3 py-1 bg-red-400 text-white rounded">
+                        <button onClick={() => handleDeleteAlbum(dateKey, index)} className="px-3 py-1 bg-red-400 text-white rounded">
                           削除
                         </button>
                       </div>
@@ -177,6 +208,7 @@ const AlbumPage = () => {
           ))
         )}
       </div>
+
       <BackButton />
     </div>
   );
