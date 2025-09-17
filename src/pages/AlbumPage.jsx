@@ -151,12 +151,28 @@ const AlbumPage = () => {
         <textarea placeholder="コメント／思い出の記録" className="w-full border rounded p-2 mb-2" value={comment} onChange={(e) => setComment(e.target.value)} />
         <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="mb-2" />
         <div className="flex flex-wrap gap-2 mb-2">
-          {images.map((key, idx) => (
-            <div key={key} className="relative">
-              <img src={previews[key]} alt="preview" className="w-20 h-20 object-cover rounded" />
-            </div>
-          ))}
-        </div>
+         {images.map((key, idx) => (
+          <div key={key} className="relative">
+           <img
+            src={previews[key]}
+            alt="preview"
+            className="w-20 h-20 object-cover rounded"
+           />
+           <button
+            type="button"
+            onClick={() => {
+             setImages(images.filter((_, i) => i !== idx));
+             const newPreviews = { ...previews };
+             delete newPreviews[key];
+             setPreviews(newPreviews);
+            }}
+           className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1"
+          >
+           ✕
+          </button>
+         </div>
+       ))}
+      </div>
         <button onClick={handleSave} className="w-full bg-yellow-400 hover:bg-yellow-500 text-black font-bold py-2 px-4 rounded">
           {editIndex !== null ? "更新する" : "保存する"}
         </button>
