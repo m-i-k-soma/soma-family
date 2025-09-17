@@ -18,17 +18,14 @@ const dateKey = (d) => {
   return String(d);
 };
 
-// helper: blob key -> objectURL (async)
 const blobKeyToObjectUrl = async (key) => {
   if (!key) return null;
   try {
     const blob = await localforage.getItem(key);
     if (!blob) return null;
-    // blob might be stored as {type:'file', data:...} in some cases; assume hand-written File/Blob stored
     if (blob instanceof Blob) {
       return URL.createObjectURL(blob);
     }
-    // if stored as dataURL string, return directly
     if (typeof blob === "string" && (blob.startsWith("data:") || blob.startsWith("blob:") || blob.startsWith("http"))) {
       return blob;
     }
@@ -42,7 +39,6 @@ const blobKeyToObjectUrl = async (key) => {
 export const EventProvider = ({ children }) => {
   const [events, setEvents] = useState({});
 
-  // add fixed events helper (existing behavior)
   const addFixedEvents = (eventsObj) => {
     const years = [];
     for (let y = 2024; y <= 2100; y++) years.push(y);
@@ -55,26 +51,23 @@ export const EventProvider = ({ children }) => {
           id: `birthday_${y}`,
           type: "schedule",
           title: "生誕・周年記念🎂",
+          date: key,
         });
       }
     });
     return eventsObj;
   };
 
-  // Refresh from localforage (IndexedDB)
   const refreshFromStorages = async () => {
     const newEvents = {};
 
     // 1) streamLogs
     try {
       const stream = (await localforage.getItem("streamLogs")) || {};
-      // stream stored as object: { "2025-09-10": [ {title,startTime,endTime,memo,images: [imageKey,...]} ] }
       for (const [dk, arr] of Object.entries(stream)) {
         for (let idx = 0; idx < arr.length; idx++) {
           const entry = arr[idx];
           if (!newEvents[dk]) newEvents[dk] = [];
-
-          // convert image keys to objectURLs
           const images = [];
           if (Array.isArray(entry.images)) {
             for (const k of entry.images) {
@@ -82,7 +75,6 @@ export const EventProvider = ({ children }) => {
               if (url) images.push(url);
             }
           }
-
           newEvents[dk].push({
             id: `stream_${dk}_${idx}`,
             type: "stream",
@@ -91,6 +83,7 @@ export const EventProvider = ({ children }) => {
             endTime: entry.endTime || "",
             memo: entry.memo || "",
             images,
+            date: dk,
           });
         }
       }
@@ -105,7 +98,6 @@ export const EventProvider = ({ children }) => {
         for (let idx = 0; idx < arr.length; idx++) {
           const entry = arr[idx];
           if (!newEvents[dk]) newEvents[dk] = [];
-
           const images = [];
           if (Array.isArray(entry.images)) {
             for (const k of entry.images) {
@@ -113,13 +105,13 @@ export const EventProvider = ({ children }) => {
               if (url) images.push(url);
             }
           }
-
           newEvents[dk].push({
             id: `album_${dk}_${idx}`,
             type: "album",
             title: entry.title || "",
             memo: entry.comment || "",
             images,
+            date: dk,
           });
         }
       }
@@ -127,7 +119,7 @@ export const EventProvider = ({ children }) => {
       console.error("refresh album error", e);
     }
 
-    // 3) musicLogs (original & cover)
+    // 3) musicLogs
     try {
       const musicAll = (await localforage.getItem("musicLogs")) || { original: [], cover: [] };
       for (const cat of ["original", "cover"]) {
@@ -136,13 +128,10 @@ export const EventProvider = ({ children }) => {
           const entry = arr[idx];
           const dk = entry.date || dateKey(new Date());
           if (!newEvents[dk]) newEvents[dk] = [];
-
-          // fetch thumbnail if exists
           let thumbnail = null;
           if (entry.thumbnail) {
             thumbnail = await blobKeyToObjectUrl(entry.thumbnail);
           }
-
           newEvents[dk].push({
             id: `music_${cat}_${dk}_${idx}`,
             type: "music",
@@ -151,6 +140,7 @@ export const EventProvider = ({ children }) => {
             memo: entry.memo || "",
             url: entry.url || "",
             thumbnail,
+            date: dk,
           });
         }
       }
@@ -158,31 +148,25 @@ export const EventProvider = ({ children }) => {
       console.error("refresh music error", e);
     }
 
-    // fixed events
     const withFixed = addFixedEvents(newEvents);
     setEvents(withFixed);
     try {
-      await localforage.setItem("events_v1", withFixed); // store for quick load if desired
-    } catch (e) {
-      // ignore
-    }
+      await localforage.setItem("events_v1", withFixed);
+    } catch (e) {}
   };
 
   useEffect(() => {
-    // on mount attempt to load existing cached events_v1 first (fast), but always call refresh to ensure consistency
     const init = async () => {
       try {
         const cached = (await localforage.getItem("events_v1")) || null;
         if (cached) {
           setEvents(addFixedEvents(cached));
         }
-      } catch (e) {
-        // ignore
-      }
+      } catch (e) {}
       await refreshFromStorages();
     };
     init();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line
   }, []);
 
   const addEvent = (date, ev) => {
@@ -190,9 +174,8 @@ export const EventProvider = ({ children }) => {
     setEvents((prev) => {
       const arr = prev[key] ? [...prev[key]] : [];
       const id = ev.id || `${ev.type}_${key}_${Date.now()}`;
-      const withId = { ...ev, id };
+      const withId = { ...ev, id, date: key };
       const next = { ...prev, [key]: [...arr, withId] };
-      // also write to localforage store copy for quick load (optional)
       localforage.setItem("events_v1", next).catch(() => {});
       return addFixedEvents(next);
     });
