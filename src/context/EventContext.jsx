@@ -122,6 +122,7 @@ export const EventProvider = ({ children }) => {
     // 3) musicLogs
     try {
       const musicAll = (await localforage.getItem("musicLogs")) || { original: [], cover: [] };
+      console.log("読み込まれたmusicLogs:", musicAll);
       for (const cat of ["original", "cover"]) {
         const arr = musicAll[cat] || [];
         for (let idx = 0; idx < arr.length; idx++) {
