@@ -89,6 +89,7 @@ const MusicPage = () => {
     setMusicLogs(updatedLogs);
 
     await localforage.setItem("musicLogs", updatedLogs);
+    await refreshFromStorages();
 
     try {
       refreshFromStorages();

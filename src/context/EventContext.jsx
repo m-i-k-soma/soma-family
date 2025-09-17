@@ -121,6 +121,7 @@ export const EventProvider = ({ children }) => {
 
     // 3) musicLogs
     try {
+      console.log("musicLogsの読み込み開始");
       const musicAll = (await localforage.getItem("musicLogs")) || { original: [], cover: [] };
       console.log("読み込まれたmusicLogs:", musicAll);
       for (const cat of ["original", "cover"]) {
@@ -158,13 +159,14 @@ export const EventProvider = ({ children }) => {
 
   useEffect(() => {
     const init = async () => {
+      await refreshFromStorages();
       try {
         const cached = (await localforage.getItem("events_v1")) || null;
         if (cached) {
           setEvents(addFixedEvents(cached));
         }
       } catch (e) {}
-      await refreshFromStorages();
+      
     };
     init();
     // eslint-disable-next-line
