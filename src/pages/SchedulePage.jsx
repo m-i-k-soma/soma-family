@@ -1,9 +1,8 @@
-// src/pages/SchedulePage.jsx
 import "react-calendar/dist/Calendar.css";
 import React, { useState } from "react";
 import MonthCalendar from "../components/MonthCalendar";
 import { useEvents } from "../context/EventContext";
-import BackButton from '../components/BackButton';
+import BackButton from "../components/BackButton";
 
 const SchedulePage = () => {
   const { getEventsByDate } = useEvents();
@@ -61,6 +60,11 @@ const SchedulePage = () => {
                         ))}
                       </div>
                     )}
+                    {ev.thumbnail && (
+                      <div className="mt-2">
+                        <img src={ev.thumbnail} alt="thumbnail" className="w-32 h-32 object-cover rounded" />
+                      </div>
+                    )}
                     {ev.url && (
                       <div className="mt-2">
                         <a href={ev.url} target="_blank" rel="noreferrer" className="text-blue-500 underline">
@@ -75,10 +79,11 @@ const SchedulePage = () => {
           </div>
         </div>
       )}
+
+      <BackButton />
     </div>
   );
 };
-<BackButton />
-export default SchedulePage;
 
+export default SchedulePage;
 
